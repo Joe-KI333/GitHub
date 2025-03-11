@@ -33,8 +33,7 @@ jobs:
       run: docker build -t flask-app .
 
     - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
+      run: echo J_nadar_14 | docker login -u joelnadar14 --password-stdin
     - name: Push Docker image
       run: |
         docker tag flask-app joelnadar14/flask-app:latest
