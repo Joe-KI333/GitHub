@@ -13,47 +13,55 @@ jobs:
     runs-on: windows-latest  # Using Windows instead of Ubuntu
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Run tests (optional)
-      run: |
-        echo "No tests defined"
+      - name: Run tests (optional)
+        run: |
+          echo "No tests defined"
 
-    - name: Build Docker image
-      run: docker build -t flask-app .
+      - name: Build Docker image
+        run: docker build -t flask-app .
 
-    - name: Log in to Docker Hub
-      run: echo "J_nadar_14" | docker login -u "joelnadar14" --password-stdin
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Push Docker image
-      run: |
-        docker tag flask-app joelnadar14/flask-app:latest
-        docker push joelnadar14/flask-app:latest
+      - name: Push Docker image
+        run: |
+          docker tag flask-app joelnadar14/flask-app:latest
+          docker push joelnadar14/flask-app:latest
 
   deploy:
     needs: build
     runs-on: windows-latest  # Using Windows instead of Ubuntu
 
     steps:
-    - name: Deploy to Server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        script: |
-          docker pull joelnadar14/flask-app:latest
-          docker stop flask-app-container || exit 0
-          docker rm flask-app-container || exit 0
-          docker run -d -p 80:5000 --name flask-app-container joelnadar14/flask-app:latest
+      - name: Set up SSH Key for Windows
+        run: |
+          mkdir C:\Users\runneradmin\.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > C:\Users\runneradmin\.ssh\id_rsa
+          icacls C:\Users\runneradmin\.ssh\id_rsa /inheritance:r /grant:r "NT AUTHORITY\SYSTEM:F" "Administrators:F"
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> C:\Users\runneradmin\.ssh\known_hosts
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull joelnadar14/flask-app:latest
+            docker stop flask-app-container || true
+            docker rm flask-app-container || true
+            docker run -d -p 80:5000 --name flask-app-container joelnadar14/flask-app:latest
