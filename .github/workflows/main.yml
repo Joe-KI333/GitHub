@@ -51,7 +51,8 @@ jobs:
           mkdir C:\Users\runneradmin\.ssh
           echo "${{ secrets.SERVER_SSH_KEY }}" > C:\Users\runneradmin\.ssh\id_rsa
           icacls C:\Users\runneradmin\.ssh\id_rsa /inheritance:r /grant:r "NT AUTHORITY\SYSTEM:F" "Administrators:F"
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> C:\Users\runneradmin\.ssh\known_hosts
+          ssh-keyscan -t rsa ${{ secrets.SERVER_HOST }} > C:\Users\runneradmin\.ssh\known_hosts
+
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
